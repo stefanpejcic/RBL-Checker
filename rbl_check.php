@@ -1,148 +1,112 @@
 <?php
-                                // Download this file and type: php ./rbl_check.php from the command line to run the script.
-$ips = [                        // List of IP addresses to check below: Put all the Mail server addresses you want to check here. Format '127.0.0.1',
-    '127.0.0.1',
-    '127.0.0.2',
-];                              // End List of IP addresses to check.
+/**
+ * PHP RBL Blacklist Checker
+ * @version : 1.0
+**/
+session_start();
 
-$showprogress = 1;              // Set to 1 to show the progress report or 0 to silence and just show final results (recommended). Format 1; or 0;
+session_write_close();
 
-$rbls = [                       // Black lists to check below: Format 'type.black_list.tld',
-    'b.barracudacentral.org',
-    'cbl.abuseat.org',
-    'http.dnsbl.sorbs.net',
-    'misc.dnsbl.sorbs.net',
-    'socks.dnsbl.sorbs.net',
-    'web.dnsbl.sorbs.net',
-    'dnsbl-1.uceprotect.net',
-    'dnsbl-3.uceprotect.net',
-    'sbl.spamhaus.org',
-    'zen.spamhaus.org', 
-    'psbl.surriel.com',
-//  'dnsbl.njabl.org',
-    'rbl.spamlab.com',
-    'noptr.spamrats.com',
-    'cbl.anti-spam.org.cn',
-    'dnsbl.inps.de',
-    'httpbl.abuse.ch',
-    'korea.services.net', 
-    'virus.rbl.jp',
-    'wormrbl.imp.ch',
-    'rbl.suresupport.com',
-    'ips.backscatterer.org',
-    'opm.tornevall.org',
-    'multi.surbl.org',
-    'tor.dan.me.uk', 
-//  'relays.mail-abuse.org',
-//  'rbl-plus.mail-abuse.org',
-    'access.redhawk.org',
-    'rbl.interserver.net',
-    'bogons.cymru.com',
-    'bl.spamcop.net',
-    'dnsbl.sorbs.net',
-    'dul.dnsbl.sorbs.net',
-    'smtp.dnsbl.sorbs.net',
-    'spam.dnsbl.sorbs.net',
-    'zombie.dnsbl.sorbs.net', 
-    'dnsbl-2.uceprotect.net',
-    'pbl.spamhaus.org',
-    'xbl.spamhaus.org',
-//  'bl.spamcannibal.org',
-    'ubl.unsubscore.com',
-//  'combined.njabl.org',
-    'dyna.spamrats.com',
-    'spam.spamrats.com',
-    'cdl.anti-spam.org.cn',
-    'drone.abuse.ch',   
-    'dul.ru',
-    'short.rbl.jp',
-    'spamrbl.imp.ch',
-    'virbl.bit.nl',
-    'dsn.rfc-ignorant.org',
-    'dsn.rfc-ignorant.org',
-    'netblock.pedantic.org',
-    'ix.dnsbl.manitu.net',
-    'rbl.efnetrbl.org', 
-//  'blackholes.mail-abuse.org',
-    'dnsbl.dronebl.org',
-    'db.wpbl.info',
-    'query.senderbase.org',
-//  'bl.emailbasura.org',
-    'combined.rbl.msrbl.net',
-//  'multi.uribl.com',          // Will always give back 127.0.0.1 on a negative and 127.0.0.2 on a positive. This script is currently not able to decode at that level.
-//  'black.uribl.com',          // Will always give back 127.0.0.1 on a negative and 127.0.0.2 on a positive. This script is currently not able to decode at that level.
-    'cblless.anti-spam.org.cn',
-    'cblplus.anti-spam.org.cn',
-    'blackholes.five-ten-sg.com',
-    'sorbs.dnsbl.net.au',
-    'rmst.dnsbl.net.au',    
-    'dnsbl.kempt.net',
-    'blacklist.woody.ch',
-//  'rot.blackhole.cantv.net',
-    'virus.rbl.msrbl.net',
-    'phishing.rbl.msrbl.net',
-    'images.rbl.msrbl.net',
-    'spam.rbl.msrbl.net',
-    'spamlist.or.kr',
-    'dnsbl.abuse.ch',
-    'bl.deadbeef.com',
-    'ricn.dnsbl.net.au',
-    'forbidden.icm.edu.pl',
-    'probes.dnsbl.net.au',
-    'ubl.lashback.com',
-    'ksi.dnsbl.net.au',
-    'uribl.swinog.ch',
-    'bsb.spamlookup.net',
-    'dob.sibl.support-intelligence.net',
-    'url.rbl.jp',
-    'dyndns.rbl.jp',
-    'omrs.dnsbl.net.au',
-    'osrs.dnsbl.net.au',
-    'orvedb.aupads.org',
-    'relays.nether.net',
-    'relays.bl.gweep.ca',
-    'relays.bl.kundenserver.de',
-    'dialups.mail-abuse.org',
-    'rdts.dnsbl.net.au',
-    'duinv.aupads.org',
-    'dynablock.sorbs.net',
-    'residential.block.transip.nl',
-//  'dynip.rothen.com',
-//  'dul.blackhole.cantv.net',
-    'mail.people.it',
-    'blacklist.sci.kun.nl',
-    'all.spamblock.unit.liu.se',
-    'spamguard.leadmon.net',
-    'csi.cloudmark.com',
-];                                                                                              // End black lists to check.
+# BlackList Checker 
+if(isset($_GET['check_ip'])){
+    if (isset($_GET['host'])){
+        $_GET['host']=explode(",", $_GET['host']);
+        foreach ($_GET['host'] as $host) {
+            if (checkdnsrr($_GET['check_ip'] . "." .  $host . ".", "A")) $check= "<font color='red'> Listed</font>";
+            else $check= "<font color='green'> Clean</font>";
+            print 'document.getElementById("'. $host.'").innerHTML = "'.$check.'";';
+        }
 
-$rbl_count = count($rbls);                                                                      // Adds the total number of black lists to check for result reporting.
-
-foreach ($ips as $ip){                                                                          // Begin the RBL checking and reporting.
-    $rev = join('.', array_reverse(explode('.', trim($ip))));                                   // Format the IP address for the DNS querry.
-    $i = 1;                                                                                     // Initialize the progress report counter.
-    $listed_rbls = [];                                                                          // Initialize the RBL Report Array.
-    foreach ($rbls as $rbl){                                                                    // Check each IP against the RBL list.
-        if ($showprogress) printf('Checking %s, %d of %d... ',$ip.' on '.$rbl, $i, $rbl_count); // Progress report line start.
-        $lookup = sprintf('%s.%s', $rev, $rbl.'.');                                             // Format the DNS querry.
-        $listed = gethostbyname($lookup) !== $lookup;                                           // Perform DNS lookup and return true if DNS querry has a return value.
-        if ($showprogress) printf('[%s]%s', $listed ? 'LISTED' : 'OK', PHP_EOL);                // Progress report line end.
-        if ($listed) $listed_rbls[] = $rbl;                                                     // Add each RBL to final report if there is a match.
-        $i++;                                                                                   // Advance the progress report Counter.
+        exit;
     }
-    $results[$ip] = sprintf('%s is listed on %d of %d known blacklists%s', $ip, count($listed_rbls), $rbl_count, PHP_EOL);
-    if ( ! empty($listed_rbls) ) $result_details[$ip] = sprintf('%s is listed on: %s%s', $ip, join(PHP_EOL . "\t\t\t" , $listed_rbls), PHP_EOL);
-} 
+    $dnsbl_lookup = [
+        "all.s5h.net",
+        "b.barracudacentral.org",
+        "bl.spamcop.net",
+        "blacklist.woody.ch",
+        "bogons.cymru.com",
+        "cbl.abuseat.org",
+        "cdl.anti-spam.org.cn",
+        "combined.abuse.ch",
+        "db.wpbl.info",
+        "dnsbl-1.uceprotect.net",
+        "dnsbl-2.uceprotect.net",
+        "dnsbl-3.uceprotect.net",
+        "dnsbl.anticaptcha.net",
+        "dnsbl.dronebl.org",
+        "dnsbl.inps.de",
+        "dnsbl.sorbs.net",
+        "drone.abuse.ch",
+        "duinv.aupads.org",
+        "dul.dnsbl.sorbs.net",
+        "dyna.spamrats.com",
+        "dynip.rothen.com",
+        "http.dnsbl.sorbs.net",
+        "ips.backscatterer.org",
+        "ix.dnsbl.manitu.net",
+        "korea.services.net",
+        "misc.dnsbl.sorbs.net",
+        "noptr.spamrats.com",
+        "orvedb.aupads.org",
+        "pbl.spamhaus.org",
+        "proxy.bl.gweep.ca",
+        "psbl.surriel.com",
+        "relays.bl.gweep.ca",
+        "relays.nether.net",
+        "sbl.spamhaus.org",
+        "short.rbl.jp",
+        "singular.ttk.pte.hu",
+        "smtp.dnsbl.sorbs.net",
+        "socks.dnsbl.sorbs.net",
+        "spam.abuse.ch",
+        "spam.dnsbl.anonmails.de",
+        "spam.dnsbl.sorbs.net",
+        "spam.spamrats.com",
+        "spambot.bls.digibase.ca",
+        "spamrbl.imp.ch",
+        "spamsources.fabel.dk",
+        "ubl.lashback.com",
+        "ubl.unsubscore.com",
+        "virus.rbl.jp",
+        "web.dnsbl.sorbs.net",
+        "wormrbl.imp.ch",
+        "xbl.spamhaus.org",
+        "z.mailspike.net",
+        "zen.spamhaus.org",
+        "zombie.dnsbl.sorbs.net",
+    ];
+    $reverse_ip = implode(".", array_reverse(explode(".", $_GET['check_ip'])));
+    $dnsT = count($dnsbl_lookup);
+    rblheader();
+    print '<div class="container col-lg-6"><h3><font color="green"><span class="glyphicon glyphicon-eye-open"></span></font> RBL <small> Blacklist Checker</small></h3>';
+    Print "Checking <b>".$_GET['check_ip']."</b> in <b>$dnsT</b>  anti-spam databases:<br></br>";
+    $dnsN="";
+    print '<table >';
+    for ($i=0; $i < $dnsT; $i=$i+10) { 
+        $host="";
+        $hosts="";
+        for($j=$i; $j<$i+10;$j++){
+            $host=$dnsbl_lookup[$j];
+            if(!empty($host)){
+                print "<tr> <td>$host</td> <td id='$host'>Checking ..</td></tr>";
+                $hosts .="$host,";
+            }
+        }
+        $dnsN.="<script src='?check_ip=$reverse_ip&host=".$hosts."' type='text/javascript'></script>";
+    } 
 
-echo PHP_EOL , 'Result Summary:' , PHP_EOL . PHP_EOL;
-
-foreach ($results as $result){
-    echo $result;
+    print '</table></div>';
+    print $dnsN;
+    exit;
 }
 
-echo PHP_EOL , 'Result Detail:' , PHP_EOL . PHP_EOL;
-
-foreach ($result_details as $result_detail){
-    echo $result_detail, PHP_EOL;
-}     
+function rblheader(){
+print '
+<head>
+    <title>'.str_replace("www.", "", $_SERVER['HTTP_HOST']).' - RBL Blacklist Checker</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.4.1/cosmo/bootstrap.min.css" rel="stylesheet" >
+</head>';
+}
+rblheader();
 ?>
